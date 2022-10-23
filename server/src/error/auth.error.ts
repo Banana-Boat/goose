@@ -1,7 +1,5 @@
-import { ErrorTypes } from "./types";
-
-export default {
-  TokenError: {
+export const authError = {
+  WrongToken: {
     code: "10101",
     msg: "token错误",
   },
@@ -9,4 +7,4 @@ export default {
     code: "10102",
     msg: "token过期",
   },
-} as ErrorTypes;
+};
