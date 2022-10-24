@@ -2,10 +2,10 @@
   "name": "goose",
   "version": "1.0.0",
   "description": "A cloud development platform, which supports cloud function, cloud storage and API management",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "",
-  "license": "ISC"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "client-install": "npm install --prefix client",
+    "server-install": "npm install --prefix server",
+    "install": "npm run client-install && npm run server-install"
+  }
 }

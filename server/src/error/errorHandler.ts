@@ -1,12 +1,16 @@
-import { Request, Response } from "express";
+import { Request, Response, NextFunction } from "express";
 import { Error } from "./types";
 
-export function errorHandler(error: Error, req: Request, res: Response) {
-  console.log("Error: ", error);
+export function errorHandler(
+  error: Error,
+  req: Request,
+  res: Response,
+  next: NextFunction
+) {
+  console.error("Error: ", error);
 
-  let status = 500;
-  switch (error.code) {
-  }
+  let status = error.statusCode || 500;
+  const { statusCode, ...restInfo } = error;
 
-  res.status(status).json(error);
+  res.status(status).json(restInfo);
 }

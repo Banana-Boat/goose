@@ -3,93 +3,119 @@ import * as bcrypt from "bcryptjs";
 import * as jwt from "jsonwebtoken";
 
 import { userError } from "../../error/user.error";
+import {
+  createUser,
+  queryUser,
+  updateUser,
+} from "../../models/users/user.model";
 
 async function register(req: Request, res: Response, next: NextFunction) {
-  const { user_name, password } = req.body;
+  const { userName, userPsw, isAdmin } = req.body;
 
   try {
     // 校验用户名密码是否存在
-    if (!user_name || !password) return next(userError.InfoMissing);
+    if (!userName || !userPsw) return next(userError.InfoMissing);
 
     // 校验用户名是否已被注册
-    // if (await getOneUserInfo({ user_name }))
-    //   return next(userError.AlreadyExisted);
+    if (await queryUser(userName)) return next(userError.AlreadyExisted);
 
     // 创建用户
-    // const user = await createUser(user_name, password);
-    // const { password: hash, ...restInfo } = user.get(); // 剔除password
+    const userInfo = await createUser({ userName, userPsw, isAdmin });
 
-    // res.status(200).json({
-    //   code: "0",
-    //   msg: "注册成功",
-    //   data: restInfo,
-    // });
+    res.status(200).json({
+      code: "0",
+      msg: "注册成功",
+      data: userInfo,
+    });
   } catch (err) {
+    console.error(err);
     next(userError.RegisterFaild);
   }
 }
 
+async function getUserInfo(req: Request, res: Response, next: NextFunction) {
+  const { userName } = req.body; // token中解析获得
+
+  try {
+    // 校验该用户是否存在
+    const userInfo = await queryUser(userName);
+    if (!userInfo) return next(userError.DoesNotExisted);
+
+    const { userPsw, ...restInfo } = userInfo;
+
+    res.status(200).json({
+      code: "0",
+      msg: "获取用户信息成功",
+      data: restInfo,
+    });
+  } catch (err) {
+    console.error(err);
+    next(userError.GetInfoFailed);
+  }
+}
+
 async function login(req: Request, res: Response, next: NextFunction) {
-  const { user_name, password } = req.body;
+  const { userName, userPsw } = req.body;
 
   try {
     // 校验用户名密码是否存在
-    if (!user_name || !password) return next(userError.InfoMissing);
+    if (!userName || !userPsw) return next(userError.InfoMissing);
 
-    // 校验用户名是否存在
-    // const user = await getOneUserInfo({ user_name });
-    // if (!user) return next(userError.AlreadyExisted);
+    // 校验该用户是否存在
+    const userInfo = await queryUser(userName);
+    if (!userInfo) return next(userError.DoesNotExisted);
 
-    // const { password: hash, ...restInfo } = user.get();
+    const { userPsw: hash, ...restInfo } = userInfo;
 
-    // // 校验密码是否正确
-    // if (!bcrypt.compareSync(password, hash))
-    //   return next(userError.WrongPassword);
+    // 校验密码是否正确
+    if (!bcrypt.compareSync(userPsw, hash))
+      return next(userError.WrongPassword);
 
-    // // 颁发token
-    // const token = jwt.sign(restInfo, process.env.JWT_SECRET as string, {
-    //   expiresIn: "1d",
-    // });
+    // 颁发token
+    const token = jwt.sign({ userName }, process.env.JWT_SECRET, {
+      expiresIn: "1d",
+    });
 
-    // res.status(200).json({
-    //   code: "0",
-    //   msg: "登陆成功",
-    //   data: { token, ...restInfo },
-    // });
+    res.status(200).json({
+      code: "0",
+      msg: "登陆成功",
+      data: { token, ...restInfo },
+    });
   } catch (err) {
+    console.error(err);
     return next(userError.LoginFailed);
   }
 }
 
-async function editPassword(req: Request, res: Response, next: NextFunction) {
-  const { password, oldPassword } = req.body;
+async function updatePassword(req: Request, res: Response, next: NextFunction) {
+  const { userName, userPsw, oldUserPsw } = req.body;
 
   try {
     // 校验新旧密码是否存在
-    if (!password || !oldPassword) return next(userError.PswMissing);
+    if (!userPsw || !oldUserPsw) return next(userError.PswMissing);
 
     // 校验旧密码是否正确
-    // const { user_name } = req.body.user;
-    // const user = await getOneUserInfo({ user_name });
-    // if (!user) return next(userError.DoesNotExisted);
+    const userInfo = await queryUser(userName);
+    if (!userInfo) return next(userError.DoesNotExisted);
 
-    // const { password: hash, ...restInfo } = user.get();
+    const { userPsw: hash, ...restInfo } = userInfo;
 
-    // if (!bcrypt.compareSync(oldPassword, hash))
-    //   return next(userError.WrongPassword);
+    if (!bcrypt.compareSync(oldUserPsw, hash))
+      return next(userError.WrongPassword);
 
-    // // 修改密码;
-    // if (!(await updateUserInfo({ user_name, password })))
-    //   return next(userError.PswEditFailed);
+    // 修改密码
+    if (!(await updateUser({ userName }, { userPsw })))
+      return next(userError.PswEditFailed);
 
-    // res.status(200).json({
-    //   code: "0",
-    //   msg: "修改密码成功",
-    //   data: { ...restInfo },
-    // });
+    res.status(200).json({
+      code: "0",
+      msg: "修改密码成功",
+      data: restInfo,
+    });
   } catch (err) {
+    console.error(err);
     next(userError.PswEditFailed);
   }
 }
 
-export { register, login, editPassword };
+export { register, getUserInfo, login, updatePassword };

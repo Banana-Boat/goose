@@ -11,10 +11,10 @@ async function verifyToken(req: Request, res: Response, next: NextFunction) {
   const token = authorization.replace("Bearer ", "");
 
   try {
-    const decoded = jwt.verify(token, process.env.JWT_SECRET as string);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
     // 验证通过，将内容存入req.body中
-    req.body.user = decoded;
+    req.body.userName = (decoded as jwt.JwtPayload).userName;
     next();
   } catch (err) {
     if ((err as jwt.VerifyErrors).name === "TokenExpiredError")
